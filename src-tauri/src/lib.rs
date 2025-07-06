@@ -38,20 +38,17 @@ fn open_settings_window(app_handle: &tauri::AppHandle) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::AppleScript,
             None,
         ))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        // .plugin(tauri_plugin_single_instance::init(
-        //     |app_handle, _args, _cwd| {
-        //         open_settings_window(app_handle);
-        //     },
-        // ))
         .invoke_handler(tauri::generate_handler![greet])
         .setup(|app| {
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             use tauri_plugin_global_shortcut::{
                 Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
             };
@@ -88,6 +85,24 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        match event {
+            // This replaces single-instance on macOS
+            tauri::RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                if has_visible_windows {
+                    return;
+                }
+
+                // let app_handle = app_handle.clone();
+                open_settings_window(&app_handle);
+            }
+            _ => {}
+        }
+    });
 }

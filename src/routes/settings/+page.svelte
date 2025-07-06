@@ -3,6 +3,7 @@
   import { openPath } from "@tauri-apps/plugin-opener";
   import { onMount } from "svelte";
   import { tryCatch } from "$lib/helpers";
+  import ShortcutsInput from "./ShortcutsInput.svelte";
 
   interface Shortcut {
     shortcut: string;
@@ -26,10 +27,10 @@
             if (error) {
               console.error(
                 `Failed to open application '${application}'`,
-                error
+                error,
               );
             }
-          })
+          }),
         );
 
         if (error) {
@@ -37,7 +38,7 @@
         } else {
           console.log(`Registered shortcut '${shortcut}' for '${application}'`);
         }
-      })
+      }),
     );
   };
 
@@ -53,7 +54,7 @@
         shortcut: "Control+9",
         application: "/Applications/Visual Studio Code.app",
       },
-    ]
+    ],
   );
 
   onMount(() => {
@@ -64,44 +65,5 @@
 <main class="container">
   <h1>Shortcuts</h1>
 
-  {#each shortcuts as { application, shortcut }, i}
-    <div>
-      <input
-        type="text"
-        placeholder="Shortcut"
-        bind:value={
-          () => shortcut,
-          (value) => {
-            shortcuts[i].shortcut = value;
-
-            resetShortcuts();
-          }
-        }
-      />
-
-      <input
-        type="text"
-        placeholder="Application"
-        bind:value={
-          () => application,
-          (value) => {
-            shortcuts[i].application = value;
-
-            resetShortcuts();
-          }
-        }
-      />
-    </div>
-  {/each}
-
-  <button
-    type="button"
-    onclick={() =>
-      shortcuts.push({
-        shortcut: "",
-        application: "",
-      })}
-  >
-    +
-  </button>
+  <ShortcutsInput bind:value={shortcuts} onChange={() => resetShortcuts()} />
 </main>
