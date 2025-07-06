@@ -21,6 +21,7 @@
         }
       ]
     },
-    "store:default"
+    "store:default",
+    "autostart:default"
   ]
 }
