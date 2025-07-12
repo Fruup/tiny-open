@@ -2,7 +2,7 @@
   import { useDebounce } from "runed";
 
   let {
-    value = $bindable([]),
+    value = $bindable(),
     onChange: onChange_,
   }: {
     value: Shortcut[];
@@ -21,7 +21,7 @@
 
 <div class="flex gap-2 flex-col">
   {#each value as { application, shortcut }, i}
-    <div class="p-1 rounded-lg border">
+    <div class="p-2 font-mono rounded-lg border">
       <input
         type="text"
         placeholder="Shortcut"
@@ -29,6 +29,9 @@
           () => shortcut,
           (v) => {
             value[i].shortcut = v;
+
+            // for some reason this is necessary...
+            value = value;
 
             onChange();
           }
@@ -43,6 +46,9 @@
           (v) => {
             value[i].application = v;
 
+            // for some reason this is necessary...
+            value = value;
+
             onChange();
           }
         }
@@ -52,6 +58,7 @@
 
   <button
     type="button"
+    class="hover:bg-muted-foreground"
     onclick={() =>
       value.push({
         shortcut: "",

@@ -1,20 +1,30 @@
 <script lang="ts">
   import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
   import { openPath } from "@tauri-apps/plugin-opener";
-  import { onMount } from "svelte";
   import { tryCatch } from "$lib/helpers";
   import ShortcutsInput from "./ShortcutsInput.svelte";
+  import { wrapStoreValue } from "./helpers.svelte";
+  import type { Shortcut } from "./types";
+  import { useDebounce } from "runed";
 
-  interface Shortcut {
-    shortcut: string;
-    application: string;
-  }
+  let { data } = $props();
+  const { appStore } = data;
+
+  const shortcutsStore = wrapStoreValue<Shortcut[]>(appStore, "shortcuts", []);
+
+  const resetShortcutsDebounced = useDebounce(() => {
+    resetShortcuts();
+  }, 1000);
+
+  $effect(() => {
+    if (!shortcutsStore.loading) resetShortcutsDebounced.runScheduledNow();
+  });
 
   const resetShortcuts = async () => {
     await unregisterAll();
 
     await Promise.all(
-      shortcuts.map(async ({ shortcut, application }) => {
+      shortcutsStore.current.map(async ({ shortcut, application }) => {
         if (!shortcut) return;
         if (!application) return;
 
@@ -41,29 +51,15 @@
       }),
     );
   };
-
-  // TODO: use store
-  let shortcuts = $state<Shortcut[]>(
-    // JSON.parse(localStorage.getItem("shortcuts") || "[]")
-    [
-      {
-        shortcut: "Control+0",
-        application: "/Applications/zen.app",
-      },
-      {
-        shortcut: "Control+9",
-        application: "/Applications/Visual Studio Code.app",
-      },
-    ],
-  );
-
-  onMount(() => {
-    resetShortcuts();
-  });
 </script>
 
-<main class="container">
-  <h1>Shortcuts</h1>
+<main class="container min-h-screen p-8 grid place-content-center">
+  <h1 class="text-2xl mb-4">Shortcuts</h1>
 
-  <ShortcutsInput bind:value={shortcuts} onChange={() => resetShortcuts()} />
+  {#if !shortcutsStore.loading}
+    <ShortcutsInput
+      bind:value={shortcutsStore.current}
+      onChange={() => resetShortcuts()}
+    />
+  {/if}
 </main>

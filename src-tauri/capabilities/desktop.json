@@ -1,13 +1,7 @@
 {
   "identifier": "desktop-capability",
-  "platforms": [
-    "macOS",
-    "windows",
-    "linux"
-  ],
-  "windows": [
-    "main"
-  ],
+  "platforms": ["macOS", "windows", "linux"],
+  "windows": ["main", "settings"],
   "permissions": [
     "global-shortcut:default",
     "global-shortcut:allow-unregister-all",
@@ -22,6 +16,12 @@
       ]
     },
     "store:default",
-    "autostart:default"
+    "autostart:default",
+    "store:default",
+    "store:allow-set",
+    "store:allow-get",
+    "core:webview:allow-internal-toggle-devtools",
+    "core:window:allow-get-all-windows",
+    "core:window:allow-set-size"
   ]
 }
