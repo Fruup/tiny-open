@@ -1,5 +1,12 @@
-// Tauri doesn't have a Node.js server to do proper SSR
-// so we will use adapter-static to prerender the app (SSG)
-// See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
+import { Store } from "@tauri-apps/plugin-store";
+
 export const prerender = true;
 export const ssr = false;
+
+export const load = async () => {
+  const appStore = await Store.load("app.json", { autoSave: 100 });
+
+  return {
+    appStore,
+  };
+};
