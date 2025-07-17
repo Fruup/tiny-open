@@ -22,6 +22,10 @@
     "store:allow-get",
     "core:webview:allow-internal-toggle-devtools",
     "core:window:allow-get-all-windows",
-    "core:window:allow-set-size"
+    "core:window:allow-set-size",
+    "log:default",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "core:event:allow-listen"
   ]
 }

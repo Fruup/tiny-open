@@ -1,6 +1,7 @@
-use tauri::Manager;
+use std::fs;
+
+use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
-use tauri_plugin_opener::OpenerExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -8,7 +9,32 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-fn open_settings_window(app_handle: &tauri::AppHandle) {
+#[tauri::command]
+fn get_available_applications() -> Result<Vec<String>, ()> {
+    let dir = fs::read_dir("/Applications").unwrap();
+    let entries = dir
+        .filter_map(|result| {
+            let item = result.unwrap();
+
+            match item.file_name().to_str() {
+                Some(file_name) => {
+                    // Filter out hidden items
+                    if file_name.starts_with(".") {
+                        return None;
+                    }
+                }
+                _ => {}
+            };
+
+            item.path().to_str().map(|path| path.to_string())
+        })
+        .collect();
+
+    Ok(entries)
+}
+
+#[tauri::command]
+fn open_settings_window(app_handle: tauri::AppHandle) {
     let window_label = "settings";
 
     // Open existing settings window
@@ -18,7 +44,7 @@ fn open_settings_window(app_handle: &tauri::AppHandle) {
     } else {
         // open new window otherwise
         let window = tauri::WebviewWindowBuilder::from_config(
-            app_handle,
+            &app_handle,
             app_handle
                 .config()
                 .app
@@ -39,47 +65,30 @@ fn open_settings_window(app_handle: &tauri::AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stderr,
+                ))
+                .build(),
+        )
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::AppleScript,
             None,
         ))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_available_applications,
+            open_settings_window
+        ])
         .setup(|app| {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-
-            use tauri_plugin_global_shortcut::{
-                Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
-            };
-
-            // TODO: load these from the store
-            let shortcut_zen = Shortcut::new(Some(Modifiers::CONTROL), Code::Digit0);
-            let shortcut_code = Shortcut::new(Some(Modifiers::CONTROL), Code::Digit9);
-
-            app.handle().plugin(
-                tauri_plugin_global_shortcut::Builder::new()
-                    .with_handler(move |app_handle, shortcut, event| {
-                        if event.state != ShortcutState::Pressed {
-                            return;
-                        }
-                        let path = {
-                            if shortcut == &shortcut_code {
-                                "/Applications/Visual Studio Code.app"
-                            } else if shortcut == &shortcut_zen {
-                                "/Applications/zen.app"
-                            } else {
-                                return;
-                            }
-                        }
-                        .to_string();
-                        let _ = app_handle.opener().open_path(path, None::<String>);
-                    })
-                    .build(),
-            )?;
-
-            app.handle().global_shortcut().register(shortcut_zen)?;
-            app.handle().global_shortcut().register(shortcut_code)?;
 
             app.handle().autolaunch().enable()?;
 
@@ -99,8 +108,8 @@ pub fn run() {
                     return;
                 }
 
-                // let app_handle = app_handle.clone();
-                open_settings_window(&app_handle);
+                let app_handle = app_handle.clone();
+                open_settings_window(app_handle);
             }
             _ => {}
         }

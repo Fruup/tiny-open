@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { useDebounce } from "runed";
+  import { Button } from "$lib/components/ui/button";
+  import * as Select from "$lib/components/ui/select";
 
   let {
     value = $bindable(),
-    onChange: onChange_,
+    availableApplications: availableApplications_,
   }: {
     value: Shortcut[];
-    onChange?: (value: Shortcut[]) => void;
+    availableApplications: string[];
   } = $props();
 
   interface Shortcut {
@@ -14,9 +15,15 @@
     application: string;
   }
 
-  const onChange = useDebounce(() => {
-    onChange_?.(value);
-  }, 1000);
+  const getApplicationLabel = (value: string) =>
+    value.slice(value.lastIndexOf("/") + 1);
+
+  const availableApplications = $derived(
+    availableApplications_.map((value) => ({
+      value,
+      label: getApplicationLabel(value),
+    })),
+  );
 </script>
 
 <div class="flex gap-2 flex-col">
@@ -32,15 +39,12 @@
 
             // for some reason this is necessary...
             value = value;
-
-            onChange();
           }
         }
       />
 
-      <input
-        type="text"
-        placeholder="Application"
+      <Select.Root
+        type="single"
         bind:value={
           () => application,
           (v) => {
@@ -48,17 +52,25 @@
 
             // for some reason this is necessary...
             value = value;
-
-            onChange();
           }
         }
-      />
+      >
+        <Select.Trigger>
+          {application ? getApplicationLabel(application) : "Application..."}
+        </Select.Trigger>
+
+        <Select.Content>
+          {#each availableApplications as { value, label }}
+            <Select.Item {value}>
+              {value.slice(value.lastIndexOf("/") + 1)}
+            </Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
     </div>
   {/each}
 
-  <button
-    type="button"
-    class="hover:bg-muted-foreground"
+  <Button
     onclick={() =>
       value.push({
         shortcut: "",
@@ -66,5 +78,5 @@
       })}
   >
     +
-  </button>
+  </Button>
 </div>
