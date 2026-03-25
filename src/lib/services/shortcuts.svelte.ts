@@ -1,11 +1,11 @@
 import { tryCatch } from "$lib/helpers";
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
-import { openPath } from "@tauri-apps/plugin-opener";
 import type { Shortcut } from "$lib/types";
 import { useDebounce } from "runed";
 import { Store } from "@tauri-apps/plugin-store";
 import { log } from "./log";
 import { emitTo, listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 
 export class ShortcutsService {
   #current = $state<Shortcut[]>([]);
@@ -78,7 +78,7 @@ export class ShortcutsService {
     await unregisterAll().catch(log.error);
 
     await Promise.all(
-      this.#current.map(async ({ shortcut, application }) => {
+      this.shortcuts.map(async ({ shortcut, application }) => {
         if (this.#shortcutsDisabled) return;
         if (!shortcut) return;
         if (!application) return;
@@ -87,7 +87,9 @@ export class ShortcutsService {
           register(shortcut, async ({ state }) => {
             if (state === "Released") return;
 
-            const [_, error] = await tryCatch(openPath(application));
+            const [_, error] = await tryCatch(
+              invoke("open_application", { application }),
+            );
 
             if (error) {
               log.error(`Failed to open application '${application}'`, error);

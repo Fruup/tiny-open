@@ -22,7 +22,7 @@
         "title": "tiny-open - settings",
         "label": "settings",
         "url": "/settings",
-        "width": 800,
+        "width": 400,
         "height": 600,
         "create": true,
         "alwaysOnTop": true

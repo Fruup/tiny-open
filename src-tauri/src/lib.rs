@@ -1,13 +1,9 @@
+use open;
 use std::fs;
+use tauri_plugin_log::log;
 
-use tauri::{Emitter, Listener, Manager};
+use tauri::Manager;
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[tauri::command]
 fn get_available_applications() -> Result<Vec<String>, ()> {
@@ -62,6 +58,16 @@ fn open_settings_window(app_handle: tauri::AppHandle) {
     }
 }
 
+#[tauri::command]
+fn open_application(application: String) {
+    match open::that(application) {
+        Ok(_) => {}
+        Err(e) => {
+            log::error!("Failed to open application: {}", e);
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -73,6 +79,11 @@ pub fn run() {
                 .target(tauri_plugin_log::Target::new(
                     tauri_plugin_log::TargetKind::Stderr,
                 ))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("tiny-open.log".into()),
+                    },
+                ))
                 .build(),
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -81,11 +92,10 @@ pub fn run() {
             None,
         ))
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
             get_available_applications,
-            open_settings_window
+            open_settings_window,
+            open_application
         ])
         .setup(|app| {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
